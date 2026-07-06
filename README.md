@@ -8,6 +8,10 @@
 
 Proyecto **end-to-end de Data Science y Big Data**: análisis y predicción espacio-temporal de la demanda de servicios de ride-hailing en Chicago, desde la ingesta distribuida de datos con **Apache Spark** hasta un **dashboard interactivo en Streamlit** con modelos de Machine Learning evaluados con validación temporal.
 
+### 🔴 Demo en vivo
+
+**👉 [ridehailing-demand-dashboard.streamlit.app](https://ridehailing-demand-dashboard-k56fqvuqzpxmyxuijbok7q.streamlit.app/)**
+
 ![Dashboard overview](assets/dashboard_overview.png)
 
 ---
@@ -90,7 +94,9 @@ Métricas sobre la muestra incluida en el repo (test = último día completo, sp
 
 ## 📊 El dashboard
 
-Siete pestañas: resumen del proyecto, exploración temporal, análisis espacial, impacto de variables externas, comparación de modelos, estudio de feature engineering y conclusiones.
+**[Pruébalo en vivo →](https://ridehailing-demand-dashboard-k56fqvuqzpxmyxuijbok7q.streamlit.app/)**
+
+Siete pestañas: resumen del proyecto, exploración temporal, análisis espacial, impacto de variables externas, comparación de modelos, estudio de feature engineering y conclusiones. Todas las vistas temporales muestran los días de la semana con su nombre, ordenados de lunes a domingo.
 
 **Patrones temporales** — heatmap día × hora con picos de commuting claramente visibles:
 
@@ -139,7 +145,7 @@ El notebook del pipeline completo (`notebooks/`) está pensado para **Google Col
 └── LICENSE
 ```
 
-> **Nota sobre los datos:** el repo incluye una muestra compacta (6 días × 24 h × 77 zonas = 11.088 filas) exportada por el pipeline Spark para que el dashboard y el entrenamiento sean reproducibles sin infraestructura. El notebook procesa el periodo completo (~90 días) con validación rolling-window e integra además variables de tráfico (siniestros y congestión).
+> **Nota sobre los datos:** el repo incluye una muestra compacta (6 días × 24 h × 77 zonas = 11.088 filas, del domingo 26 al viernes 31 de marzo de 2023) exportada por el pipeline Spark para que el dashboard y el entrenamiento sean reproducibles sin infraestructura. Al no incluir sábado, esa categoría aparece sin datos en las vistas por día de la semana. El notebook procesa el periodo completo (~90 días, semanas enteras) con validación rolling-window e integra además variables de tráfico (siniestros y congestión).
 
 ---
 

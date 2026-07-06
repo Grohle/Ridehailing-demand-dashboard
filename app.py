@@ -17,6 +17,20 @@ import streamlit.components.v1 as components
 
 DATA_DIR = Path(__file__).parent / "data"
 
+# day_of_week viene del pipeline Spark con la convención dayofweek():
+# 1=Domingo, 2=Lunes, ..., 7=Sábado. Se muestra siempre con nombres,
+# ordenados de lunes a domingo.
+DAY_NAMES = {
+    1: "Domingo",
+    2: "Lunes",
+    3: "Martes",
+    4: "Miércoles",
+    5: "Jueves",
+    6: "Viernes",
+    7: "Sábado",
+}
+DAY_ORDER = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
 st.set_page_config(
     page_title="Ride-Hailing Demand Intelligence",
     page_icon="🚖",
@@ -29,7 +43,9 @@ st.set_page_config(
 # =========================
 @st.cache_data
 def load_dataset() -> pd.DataFrame:
-    return pd.read_csv(DATA_DIR / "final_dataset.csv")
+    df = pd.read_csv(DATA_DIR / "final_dataset.csv")
+    df["day_name"] = df["day_of_week"].map(DAY_NAMES)
+    return df
 
 
 @st.cache_data
@@ -50,10 +66,11 @@ df = load_dataset()
 # =========================
 st.sidebar.header("🎛️ Filtros")
 
+available_days = [d for d in DAY_ORDER if d in set(df["day_name"])]
 selected_days = st.sidebar.multiselect(
     "Día de la semana",
-    options=sorted(df["day_of_week"].unique()),
-    default=sorted(df["day_of_week"].unique()),
+    options=available_days,
+    default=available_days,
 )
 
 selected_hours = st.sidebar.slider("Rango horario", 0, 23, (0, 23))
@@ -66,7 +83,7 @@ selected_zones = st.sidebar.multiselect(
 )
 
 df_filtered = df[
-    (df["day_of_week"].isin(selected_days))
+    (df["day_name"].isin(selected_days))
     & (df["hour"].between(selected_hours[0], selected_hours[1]))
     & (df["zone_name"].isin(selected_zones))
 ]
@@ -173,34 +190,39 @@ identificando patrones clave de movilidad urbana.
         st.subheader("📅 Demanda por día de la semana")
 
         chart_day = alt.Chart(df_filtered).mark_bar().encode(
-            x=alt.X("day_of_week:O", title="Día"),
+            x=alt.X("day_name:N", title="Día de la semana", sort=DAY_ORDER,
+                    scale=alt.Scale(domain=DAY_ORDER)),
             y=alt.Y("mean(demand):Q", title="Demanda promedio"),
         )
 
         st.altair_chart(chart_day, use_container_width=True)
 
-        st.caption("Permite comparar patrones entre días laborales y fines de semana.")
+        st.caption("""
+Permite comparar patrones entre días laborales y fines de semana.
+La muestra pública cubre de domingo a viernes (26–31 de marzo de 2023), por lo que el sábado aparece sin datos.
+""")
 
     st.markdown("---")
 
     st.subheader("🔥 Mapa de calor: día vs hora")
 
     heatmap_data = df_filtered.pivot_table(
-        index="day_of_week",
+        index="day_name",
         columns="hour",
         values="demand",
         aggfunc="mean",
     )
 
     heatmap_long = heatmap_data.reset_index().melt(
-        id_vars="day_of_week",
+        id_vars="day_name",
         var_name="hour",
         value_name="avg_demand",
     )
 
     chart_heatmap = alt.Chart(heatmap_long).mark_rect().encode(
         x=alt.X("hour:O", title="Hora"),
-        y=alt.Y("day_of_week:O", title="Día"),
+        y=alt.Y("day_name:N", title="Día", sort=DAY_ORDER,
+                scale=alt.Scale(domain=DAY_ORDER)),
         color=alt.Color("avg_demand:Q", scale=alt.Scale(scheme="reds"), title="Demanda media"),
     )
 
@@ -209,7 +231,7 @@ identificando patrones clave de movilidad urbana.
     pico = heatmap_data.stack().idxmax()
     pico_val = heatmap_data.stack().max()
 
-    st.caption(f"Pico de demanda: día {pico[0]} a las {pico[1]}h → {pico_val:.2f} viajes/hora/zona")
+    st.caption(f"Pico de demanda: {pico[0]} a las {pico[1]}h → {pico_val:.2f} viajes/hora/zona")
 
     st.markdown("""
 📌 **Insight:**
@@ -292,8 +314,8 @@ with tab4:
         chart_temp = alt.Chart(df_filtered).mark_circle(size=40).encode(
             x=alt.X("temperature:Q", title="Temperatura (°C)"),
             y=alt.Y("demand:Q", title="Demanda"),
-            color=alt.Color("day_of_week:N", title="Día semana"),
-            tooltip=["temperature", "demand", "day_of_week"],
+            color=alt.Color("day_name:N", title="Día semana", sort=DAY_ORDER),
+            tooltip=["temperature", "demand", "day_name"],
         ).interactive()
 
         st.altair_chart(chart_temp, use_container_width=True)
