@@ -10,10 +10,9 @@ import json
 from pathlib import Path
 
 import altair as alt
-import folium
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
+import vl_convert as vlc
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -57,6 +56,50 @@ def load_geojson() -> dict:
 @st.cache_data
 def load_metrics() -> pd.DataFrame:
     return pd.read_csv(DATA_DIR / "model_metrics.csv")
+
+
+@st.cache_data(show_spinner=False)
+def choropleth_png(demand_items: tuple) -> bytes:
+    """Renderiza el mapa coroplético de demanda por community area a PNG.
+
+    Incrustamos la demanda media en las propiedades del GeoJSON y renderizamos
+    con vl-convert en el servidor en lugar de dejarlo al Vega del navegador:
+    el geoshape con GeoJSON inline no compone de forma fiable en el Vega que
+    embebe Streamlit, y así el mapa se ve idéntico en local y en producción sin
+    depender de ningún CDN de tiles. Cacheado por los valores de demanda.
+    """
+    demand = dict(demand_items)
+    features = [
+        {
+            **feat,
+            "properties": {
+                **feat["properties"],
+                "demand": demand.get(int(feat["properties"]["area_num_1"])),
+            },
+        }
+        for feat in load_geojson()["features"]
+    ]
+
+    chart = (
+        alt.Chart(alt.Data(values=features))
+        .mark_geoshape(stroke="white", strokeWidth=0.4)
+        .encode(
+            color=alt.Color(
+                "properties.demand:Q",
+                scale=alt.Scale(scheme="yelloworangered"),
+                title="Demanda media",
+                legend=alt.Legend(orient="right"),
+            ),
+            tooltip=[
+                alt.Tooltip("properties.community:N", title="Zona"),
+                alt.Tooltip("properties.demand:Q", title="Demanda media", format=".1f"),
+            ],
+        )
+        .project(type="mercator")
+        .properties(width=720, height=560)
+        .configure_view(strokeWidth=0)
+    )
+    return vlc.vegalite_to_png(chart.to_json(), scale=2)
 
 
 df = load_dataset()
@@ -273,31 +316,15 @@ y posibles puntos críticos operativos.
 
     st.markdown("---")
 
-    st.subheader("🌍 Mapa coroplético de demanda")
+    st.subheader("🌍 Mapa coroplético de demanda por community area")
 
     st.markdown("Se observa un clúster central dominante y zonas periféricas con menor actividad.")
 
-    map_df = (
-        df_filtered.groupby("pickup_community_area")["demand"]
-        .mean()
-        .reset_index()
+    demand_by_area = (
+        df_filtered.groupby("pickup_community_area")["demand"].mean().round(2).to_dict()
     )
-    map_df["pickup_community_area"] = map_df["pickup_community_area"].astype(str)
 
-    m = folium.Map(location=[41.8781, -87.6298], zoom_start=10, tiles="cartodbpositron")
-
-    folium.Choropleth(
-        geo_data=load_geojson(),
-        data=map_df,
-        columns=["pickup_community_area", "demand"],
-        key_on="feature.properties.area_num_1",
-        fill_color="YlOrRd",
-        fill_opacity=0.7,
-        line_opacity=0.2,
-        legend_name="Demanda promedio",
-    ).add_to(m)
-
-    components.html(m.get_root().render(), height=520)
+    st.image(choropleth_png(tuple(sorted(demand_by_area.items()))), use_container_width=True)
 
     st.info("""
 La visualización revela concentración espacial de la demanda,
