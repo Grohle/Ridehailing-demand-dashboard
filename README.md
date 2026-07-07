@@ -14,6 +14,8 @@ Proyecto **end-to-end de Data Science y Big Data**: análisis y predicción espa
 
 ![Dashboard overview](assets/dashboard_overview.png)
 
+El dashboard opera sobre el dataset analítico completo generado por el pipeline: **90 días** (enero–marzo de 2023) × 24 horas × 77 zonas de Chicago, con variables temporales, espaciales, climáticas, de festivos y de tráfico.
+
 ---
 
 ## 🎯 El problema
@@ -74,18 +76,18 @@ El pipeline completo está documentado y comentado en [`notebooks/ride_hailing_d
 
 ## 🤖 Resultados de los modelos
 
-Métricas sobre la muestra incluida en el repo (test = último día completo, split temporal). Reproducibles con `python src/train_models.py`:
+Métricas sobre el dataset completo de 90 días (test = última semana natural completa, 25–31 de marzo de 2023, split temporal). Reproducibles con `python src/train_models.py`:
 
 | Modelo | MAE (con lags) | RMSE (con lags) | MAE (sin lags) |
 |---|---:|---:|---:|
-| Linear Regression | 5.34 | 9.55 | 11.18 |
-| Random Forest | 2.96 | 9.61 | 3.25 |
-| **Gradient Boosting** | **2.87** | **9.21** | 5.38 |
+| Linear Regression | 2.59 | 7.72 | 12.39 |
+| **Random Forest** | **2.05** | **5.95** | 2.36 |
+| Gradient Boosting | 2.23 | 6.48 | 5.45 |
 
 **Lecturas clave:**
 
-- **Gradient Boosting** es el mejor modelo en MAE y RMSE.
-- Las **features de lag reducen el error de forma consistente** (en Linear Regression, a menos de la mitad): la demanda pasada es el mejor predictor de la demanda futura.
+- **Random Forest** es el mejor modelo en MAE y RMSE sobre el dataset completo.
+- Las **features de lag reducen el error de forma drástica** en Linear Regression y Gradient Boosting (hasta 5 veces menos error); en Random Forest el margen es menor porque el modelo ya captura buena parte del patrón horario a través del resto de variables.
 - El MAPE debe interpretarse con cautela en este problema: muchas combinaciones zona-hora tienen demanda cercana a cero, lo que infla el error porcentual.
 
 ![Comparación de modelos](assets/dashboard_modelos.png)
@@ -94,17 +96,21 @@ Métricas sobre la muestra incluida en el repo (test = último día completo, sp
 
 ## 📊 El dashboard
 
-**[Pruébalo en vivo →](https://ridehailing-demand-dashboard-k56fqvuqzpxmyxuijbok7q.streamlit.app/)**
+**[Pruébalo en vivo →](https://ridehailing-demand-dashboard-8tlsffpqh7rnwgowc95ljh.streamlit.app/)**
 
 Siete pestañas: resumen del proyecto, exploración temporal, análisis espacial, impacto de variables externas, comparación de modelos, estudio de feature engineering y conclusiones. Todas las vistas temporales muestran los días de la semana con su nombre, ordenados de lunes a domingo.
 
-**Patrones temporales** — heatmap día × hora con picos de commuting claramente visibles:
+**Patrones temporales** — heatmap día × hora con picos de commuting claramente visibles entre semana y una demanda notablemente menor el fin de semana:
 
 ![Exploración temporal](assets/dashboard_exploracion.png)
 
-**Concentración espacial** — el Loop y Near West Side dominan la demanda; O'Hare actúa como polo aislado (la app incluye además un mapa coroplético interactivo por *community area*):
+**Concentración espacial** — Near North Side y el Loop dominan la demanda; O'Hare aparece como el segundo polo en volumen, aislado del clúster urbano central (la app incluye además un mapa coroplético interactivo por *community area*):
 
 ![Análisis espacial](assets/dashboard_espacial.png)
+
+**Variables de tráfico (V3)** — la demanda es casi 3 veces mayor en franjas zona-hora con siniestros registrados, y la congestión (velocidad media) cae justo cuando sube la demanda en hora punta:
+
+![Variables de tráfico](assets/dashboard_trafico.png)
 
 ---
 
@@ -137,7 +143,7 @@ El notebook del pipeline completo (`notebooks/`) está pensado para **Google Col
 ├── notebooks/
 │   └── ride_hailing_demand_pipeline.ipynb   # Pipeline completo (5 capas, PySpark)
 ├── data/
-│   ├── final_dataset.csv     # Muestra analítica zona×hora (6 días, 77 zonas)
+│   ├── final_dataset.csv     # Dataset analítico zona×hora (90 días, 77 zonas)
 │   ├── chicago_geo.json      # GeoJSON de community areas de Chicago
 │   └── model_metrics.csv     # Métricas generadas por src/train_models.py
 ├── assets/                   # Capturas del dashboard
@@ -145,7 +151,7 @@ El notebook del pipeline completo (`notebooks/`) está pensado para **Google Col
 └── LICENSE
 ```
 
-> **Nota sobre los datos:** el repo incluye una muestra compacta (6 días × 24 h × 77 zonas = 11.088 filas, del domingo 26 al viernes 31 de marzo de 2023) exportada por el pipeline Spark para que el dashboard y el entrenamiento sean reproducibles sin infraestructura. Al no incluir sábado, esa categoría aparece sin datos en las vistas por día de la semana. El notebook procesa el periodo completo (~90 días, semanas enteras) con validación rolling-window e integra además variables de tráfico (siniestros y congestión).
+> **Nota sobre los datos:** el repo incluye el dataset analítico completo generado por el pipeline (90 días × 24 h × 77 zonas = 166.320 filas, enero–marzo de 2023), con variables temporales, espaciales, climáticas, de festivos y de tráfico (siniestros y congestión). Es exactamente el dataset que produce el notebook en su capa `curated/`, exportado a CSV para que el dashboard y el entrenamiento sean reproducibles sin necesidad de una sesión de Spark.
 
 ---
 
