@@ -58,7 +58,7 @@ flowchart LR
 | **Ingest** | Descarga programática, verificación y organización por fuente | Python, requests, Kaggle API |
 | **Store** | Data Lake con capa *raw* (CSV) y *curated* (Parquet) | Parquet, Google Drive |
 | **Compute** | Limpieza, joins entre fuentes, agregación zona×hora, feature engineering y modelado | PySpark, pandas, scikit-learn |
-| **Use** | Dashboard interactivo con exploración, mapas y comparación de modelos | Streamlit, Altair, Folium |
+| **Use** | Dashboard interactivo con exploración, mapas y comparación de modelos | Streamlit, Altair |
 
 El pipeline completo está documentado y comentado en [`notebooks/ride_hailing_demand_pipeline.ipynb`](notebooks/ride_hailing_demand_pipeline.ipynb).
 
@@ -104,9 +104,13 @@ Siete pestañas: resumen del proyecto, exploración temporal, análisis espacial
 
 ![Exploración temporal](assets/dashboard_exploracion.png)
 
-**Concentración espacial** — Near North Side y el Loop dominan la demanda; O'Hare aparece como el segundo polo en volumen, aislado del clúster urbano central (la app incluye además un mapa coroplético interactivo por *community area*):
+**Concentración espacial** — Near North Side y el Loop dominan la demanda; O'Hare aparece como el segundo polo en volumen, aislado del clúster urbano central:
 
 ![Análisis espacial](assets/dashboard_espacial.png)
+
+El **mapa coroplético por _community area_** confirma visualmente el patrón: el clúster central y O'Hare (en rojo) concentran la demanda frente a una periferia mucho más fría:
+
+![Mapa coroplético de demanda](assets/dashboard_mapa.png)
 
 **Variables de tráfico (V3)** — la demanda es casi 3 veces mayor en franjas zona-hora con siniestros registrados, y la congestión (velocidad media) cae justo cuando sube la demanda en hora punta:
 

@@ -3,8 +3,7 @@ streamlit>=1.36
 pandas>=2.0
 altair>=5.0
 numpy>=1.26
-folium>=0.16
-streamlit-folium>=0.20
+vl-convert-python>=1.6   # renderiza el mapa coroplético (Vega → PNG) en el servidor
 
 # Entrenamiento de modelos (src/train_models.py)
 scikit-learn>=1.4
