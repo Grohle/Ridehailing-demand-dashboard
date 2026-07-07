@@ -10,7 +10,7 @@ Proyecto **end-to-end de Data Science y Big Data**: análisis y predicción espa
 
 ### 🔴 Demo en vivo
 
-**👉 [ridehailing-demand-dashboard.streamlit.app](https://ridehailing-demand-dashboard-k56fqvuqzpxmyxuijbok7q.streamlit.app/)**
+**👉 [ridehailing-demand-dashboard.streamlit.app](https://ridehailing-demand-dashboard-8tlsffpqh7rnwgowc95ljh.streamlit.app/)**
 
 ![Dashboard overview](assets/dashboard_overview.png)
 
