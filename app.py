@@ -116,6 +116,8 @@ col2.metric("Demanda promedio", f"{df_filtered['demand'].mean():.2f}")
 col3.metric("Temp media", f"{df_filtered['temperature'].mean():.1f}°C")
 col4.metric("Zonas activas", df_filtered["pickup_community_area"].nunique())
 
+st.caption(f"📆 Periodo de la muestra: {df['date'].min()} → {df['date'].max()} ({df['date'].nunique()} días)")
+
 st.markdown("---")
 
 # =========================
@@ -197,10 +199,14 @@ identificando patrones clave de movilidad urbana.
 
         st.altair_chart(chart_day, use_container_width=True)
 
-        st.caption("""
-Permite comparar patrones entre días laborales y fines de semana.
-La muestra pública cubre de domingo a viernes (26–31 de marzo de 2023), por lo que el sábado aparece sin datos.
-""")
+        caption_day = "Permite comparar patrones entre días laborales y fines de semana."
+        missing_days = [d for d in DAY_ORDER if d not in set(df["day_name"])]
+        if missing_days:
+            caption_day += (
+                f" La muestra actual ({df['date'].min()} → {df['date'].max()}) "
+                f"no incluye datos de: {', '.join(missing_days)}."
+            )
+        st.caption(caption_day)
 
     st.markdown("---")
 
@@ -346,6 +352,54 @@ Los festivos alteran el patrón de movilidad:
         else:
             st.info("La columna 'is_holiday' no está disponible.")
 
+    # Variables de tráfico (V3): solo si el export del pipeline las incluye
+    if {"n_crashes", "congestion_speed"} <= set(df_filtered.columns):
+        st.markdown("---")
+        st.subheader("🚧 Variables de tráfico (V3)")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("**Siniestros viales vs demanda**")
+
+            df_crash = df_filtered.assign(
+                con_siniestro=lambda d: (d["n_crashes"] > 0).map({True: "Con siniestro", False: "Sin siniestro"})
+            )
+            chart_crash = alt.Chart(df_crash).mark_bar().encode(
+                x=alt.X("con_siniestro:N", title="Franja zona-hora"),
+                y=alt.Y("mean(demand):Q", title="Demanda promedio"),
+                color=alt.Color("con_siniestro:N", legend=None),
+            )
+            st.altair_chart(chart_crash, use_container_width=True)
+
+            st.caption("""
+Compara la demanda media entre franjas zona-hora con y sin siniestros registrados.
+""")
+
+        with col2:
+            st.markdown("**Congestión (velocidad media) vs demanda**")
+
+            df_cong = (
+                df_filtered.groupby("hour")
+                .agg(demanda=("demand", "mean"), velocidad=("congestion_speed", "mean"))
+                .reset_index()
+            )
+            base_cong = alt.Chart(df_cong).encode(x=alt.X("hour:O", title="Hora"))
+            chart_cong = alt.layer(
+                base_cong.mark_line(point=True, color="#d62728").encode(
+                    y=alt.Y("demanda:Q", title="Demanda promedio"),
+                ),
+                base_cong.mark_line(point=True, color="#1f77b4", strokeDash=[4, 3]).encode(
+                    y=alt.Y("velocidad:Q", title="Velocidad media (mph)"),
+                ),
+            ).resolve_scale(y="independent")
+            st.altair_chart(chart_cong, use_container_width=True)
+
+            st.caption("""
+En horas punta la demanda sube y la velocidad media baja → correlación negativa
+esperable entre congestión y demanda.
+""")
+
     st.markdown("""
 📌 **Insight clave:**
 Las variables externas no solo afectan la demanda, sino que introducen variabilidad
@@ -359,9 +413,10 @@ with tab5:
     st.header("🤖 Modelos predictivos")
 
     st.markdown("""
-Se evaluaron tres modelos con **split temporal** (el último día completo se
-reserva como test) y features de retardo (`lag_1h`, `lag_24h`) calculadas
-zona a zona. Las métricas son reales y reproducibles con
+Se evaluaron tres modelos con **split temporal** (el último tramo del periodo
+se reserva como test: la última semana completa si la muestra lo permite,
+el último día en caso contrario) y features de retardo (`lag_1h`, `lag_24h`)
+calculadas zona a zona. Las métricas son reales y reproducibles con
 `python src/train_models.py`.
 """)
 

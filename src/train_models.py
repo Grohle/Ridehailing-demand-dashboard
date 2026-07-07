@@ -30,6 +30,8 @@ METRICS_PATH = ROOT / "data" / "model_metrics.csv"
 
 TARGET = "demand"
 BASE_FEATURES = ["hour", "day_of_week", "pickup_community_area", "temperature", "is_holiday"]
+# Variables de tráfico (V3), presentes solo en el export completo del pipeline
+TRAFFIC_FEATURES = ["n_crashes", "congestion_speed"]
 LAG_FEATURES = ["lag_1h", "lag_24h"]
 
 MODELS = {
@@ -59,9 +61,12 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def temporal_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Reserva el último día completo como test (split temporal, sin shuffle)."""
+    """Split temporal sin shuffle. Con suficientes días (>=21) reserva la
+    última semana completa como test, como en el notebook; con la muestra
+    corta reserva el último día."""
     days = sorted(df["date"].unique())
-    test_days = days[-1:]
+    n_test = 7 if len(days) >= 21 else 1
+    test_days = days[-n_test:]
     df = df.dropna(subset=LAG_FEATURES)
     train = df[~df["date"].isin(test_days)]
     test = df[df["date"].isin(test_days)]
@@ -73,11 +78,14 @@ def main() -> None:
     df = build_features(df)
     train, test = temporal_split(df)
 
+    base = BASE_FEATURES + [c for c in TRAFFIC_FEATURES if c in df.columns]
+
     print(f"Train: {len(train):,} filas ({train['date'].min().date()} → {train['date'].max().date()})")
     print(f"Test:  {len(test):,} filas ({test['date'].min().date()} → {test['date'].max().date()})")
+    print(f"Features base: {base}")
 
     rows = []
-    for scenario, features in [("con_lags", BASE_FEATURES + LAG_FEATURES), ("sin_lags", BASE_FEATURES)]:
+    for scenario, features in [("con_lags", base + LAG_FEATURES), ("sin_lags", base)]:
         for name, factory in MODELS.items():
             model = factory()
             model.fit(train[features], train[TARGET])
@@ -88,7 +96,7 @@ def main() -> None:
                   f"RMSE={metrics['RMSE']:.3f}  MAPE={metrics['MAPE']:.1f}%")
 
     pd.DataFrame(rows).round(3).to_csv(METRICS_PATH, index=False)
-    print(f"\nMétricas guardadas en {METRICS_PATH.relative_to(ROOT)}")
+    print(f"\nMétricas guardadas en {METRICS_PATH}")
 
 
 if __name__ == "__main__":
