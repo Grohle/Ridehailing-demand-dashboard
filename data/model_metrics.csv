@@ -1,7 +1,7 @@
 Modelo,Escenario,MAE,RMSE,MAPE
-Linear Regression,con_lags,5.344,9.545,191.407
-Random Forest,con_lags,2.964,9.608,47.575
-Gradient Boosting,con_lags,2.872,9.205,48.318
-Linear Regression,sin_lags,11.184,37.077,218.039
-Random Forest,sin_lags,3.254,11.837,43.665
-Gradient Boosting,sin_lags,5.382,14.855,142.506
+Linear Regression,con_lags,2.59,7.717,54.176
+Random Forest,con_lags,2.048,5.947,42.909
+Gradient Boosting,con_lags,2.235,6.481,46.816
+Linear Regression,sin_lags,12.393,33.851,389.714
+Random Forest,sin_lags,2.358,8.39,38.71
+Gradient Boosting,sin_lags,5.454,16.764,128.009
